@@ -46,6 +46,59 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
     return rhist, ghist, bhist, bin_centers, hist_features
     
 # Source: Udacity, Self-Driving Car Engineer
+ 
+# Define a function to return HOG features and visualization
+def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True, transf_sqrt=True):
+    if vis == True:
+        features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=transf_sqrt, 
+                                  visualise=True, feature_vector=False)
+        return features, hog_image
+    else:      
+        features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=transf_sqrt, 
+                       visualise=False, feature_vector=feature_vec)
+        return features
+    
+# Source: Udacity, Self-Driving Car Engineer
+
+# Define a function to extract features from a list of images
+# extractors: list of functions expecting the feature_image as argument,
+# returning a feature vector
+def extract(imgs, extractors, cspace='RGB'):
+    # Create a list to append feature vectors to
+    features = []
+    # Iterate through the list of images
+    for file in imgs:
+        # Read in each one by one
+        image = mpimg.imread(file)
+        # apply color conversion if other than 'RGB'
+        if cspace != 'RGB':
+            if cspace == 'HSV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+            elif cspace == 'LUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+            elif cspace == 'HLS':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+            elif cspace == 'YUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+            elif cspace == 'YCrCb':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+        else: feature_image = np.copy(image)      
+            
+        # apply extractors and append to the feature list
+        v=[]
+        for ex in extractors:
+            f = ex(feature_image)
+            v.extend(f)
+            
+        features.append(np.array(v))
+
+    # Return list of feature vectors
+    return features
+    
+
+# Source: Udacity, Self-Driving Car Engineer
 
 # Define a function to extract features from a list of images
 # Have this function call bin_spatial() and color_hist()
@@ -76,21 +129,6 @@ def extract_features(imgs, cspace='RGB', spatial_size=(32, 32),
         features.append(np.concatenate((spatial_features, hist_features)))
     # Return list of feature vectors
     return features
-
-# Source: Udacity, Self-Driving Car Engineer
- 
-# Define a function to return HOG features and visualization
-def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True, transform_sqrt=False):
-    if vis == True:
-        features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
-                                  cells_per_block=(cell_per_block, cell_per_block), transform_sqrt, 
-                                  visualise=True, feature_vector=False)
-        return features, hog_image
-    else:      
-        features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
-                       cells_per_block=(cell_per_block, cell_per_block), transform_sqrt, 
-                       visualise=False, feature_vector=feature_vec)
-        return features
     
 # Source: Udacity, Self-Driving Car Engineer
 
