@@ -1,2 +1,2 @@
-# detect
-vehicle detection on a video stream
+# track
+please find the complete documentation in main.ipynb.
