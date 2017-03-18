@@ -1,5 +1,44 @@
 import numpy as np
 
+from sklearn.utils import shuffle
+
+def split_n_shuffle(features, labels, split):
+    feat_train=features[0:0]; label_train=np.array([])
+    feat_test=features[0:0]; label_test=np.array([])
+    for cls in range(2):
+        #print(features)
+        feat_cls=features[labels==cls]
+        #print(feat_cls)
+        n_cls = len(feat_cls)
+        feat_cls_train=feat_cls[0:int(split*n_cls)]; feat_cls_test=feat_cls[int(split*n_cls):n_cls]
+        #print(feat_cls_train)
+        #print(feat_cls_test)
+        label_cls_train=np.ones(len(feat_cls_train))*cls
+        label_cls_test=np.ones(len(feat_cls_test))*cls
+        feat_train=np.vstack((feat_train, feat_cls_train))
+        feat_test=np.vstack((feat_test, feat_cls_test))
+        label_train=np.hstack((label_train, label_cls_train))
+        label_test=np.hstack((label_test, label_cls_test))
+    feat_train, label_train=shuffle(feat_train, label_train)
+    feat_test, label_test=shuffle(feat_test, label_test)
+    return feat_train, feat_test, label_train, label_test
+
+class Classifier():
+    def __init__(self, clf, minDist=0):
+        self.clf=clf
+        self.minDist=minDist
+        
+    def predict(self, X):
+        d=self.clf.decision_function(X)
+        result=np.zeros(len(X))
+        result[d>self.minDist]=1
+        return result
+    
+    def score(self, X, y):
+        p=self.predict(X)
+        d=1-np.abs(p-y)
+        return ((np.sum(d))/len(d))
+
 def rectangle(polygon):
     xMin=polygon[0][1]; xMax=xMin
     yMin=polygon[0][0]; yMax=yMin
@@ -65,6 +104,10 @@ def bottom_boundary(groundWindow=[[0,279],[240,50],[800,50],[1003,70], [1003,279
 
 # Source of the code: Udacity, Self-Driving Car Engineer. Adapted to support x range as well.
 # Define a single function that can extract features using hog sub-sampling and make predictions
+from lib import convert_color
+import cv2
+import numpy as np
+from lib import get_hog_features, bin_spatial
 def find_cars2(img, xstart, xstop, ystart, ystop, scale, 
                svc, X_scaler, orient, pix_per_cell, cell_per_block, cells_per_step_x, cells_per_step_y, 
                spatial_size, hist_bins):
@@ -115,10 +158,11 @@ def find_cars2(img, xstart, xstop, ystart, ystop, scale,
           
             # Get color features
             spatial_features = bin_spatial(subimg, size=spatial_size)
-            hist_features = color_hist(subimg, nbins=hist_bins)
+            #hist_features = color_hist(subimg, nbins=hist_bins)
 
             # Scale features and make a prediction
-            test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))    
+            test_features = X_scaler.transform(np.hstack((spatial_features, hog_features)).reshape(1, -1))    
+            #test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))    
             #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))    
             test_prediction = svc.predict(test_features)
             
@@ -130,3 +174,27 @@ def find_cars2(img, xstart, xstop, ystart, ystop, scale,
                 boxes.append(box)
                 
     return boxes
+
+def get_labeled_bboxes(labels):
+    # Iterate through all detected cars
+    bboxes=[]
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        # Add the box on the list
+        bboxes.append(bbox)
+    return bboxes
+
+def draw_labeled_bboxes2(img, bboxes):
+    # Iterate through all detected cars
+    for bbox in bboxes:
+        # Draw the box on the image
+        cv2.rectangle(img, tuple(bbox[0]), tuple(bbox[1]), (0,0,255), 6)
+    # Return the image
+    return img
+
